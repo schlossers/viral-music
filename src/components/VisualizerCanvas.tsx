@@ -42,22 +42,18 @@ export const VisualizerCanvas: React.FC<VisualizerCanvasProps> = ({
             const width = canvas.width;
             const height = canvas.height;
 
-            // Clear
-            ctx.fillStyle = '#1a1a1a';
+            // Clear with new dark theme background
+            ctx.fillStyle = '#0f172a'; // --bg-dark
             ctx.fillRect(0, 0, width, height);
 
             // Calculate dimensions
-            // We need to map 88 keys to the width (or height if vertical)
-            const isVertical = orientation === 'vertical';
-            const longSide = isVertical ? height : width;
-            const shortSide = isVertical ? width : height;
-
-            const keyWidth = longSide / PIANO_KEYS;
-
-            const pianoHeight = shortSide * 0.15; // 15% for piano
+            // Always map keys to the width, regardless of orientation
+            // The orientation prop now controls the container aspect ratio via CSS
+            const keyWidth = width / PIANO_KEYS;
+            const pianoHeight = height * 0.15; // 15% for piano
 
             const timeWindow = 4; // seconds to fall
-            const fallSpeed = (shortSide - pianoHeight) / timeWindow; // pixels per second
+            const fallSpeed = (height - pianoHeight) / timeWindow; // pixels per second
 
             notes.forEach(note => {
                 // We want to show notes that started recently
@@ -70,25 +66,35 @@ export const VisualizerCanvas: React.FC<VisualizerCanvasProps> = ({
                     const y = pianoHeight + (timeSinceStart * fallSpeed);
 
                     // Draw Ball
-                    ctx.fillStyle = `hsl(${note.pitch * 10}, 70%, 60%)`;
-                    ctx.beginPath();
+                    // OPTIMIZATION: Removed shadowBlur as it causes severe performance drops
+                    // Use a radial gradient to simulate glow efficiently
+                    const hue = (note.pitch * 10) % 360;
                     const radius = keyWidth / 2 * 0.8;
-                    ctx.arc(x + keyWidth / 2, y, radius, 0, Math.PI * 2);
-                    ctx.fill();
 
-                    // Draw Note Name text
-                    if (radius > 5) {
-                        ctx.fillStyle = '#fff';
-                        ctx.font = `${Math.floor(radius)}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(getNoteName(note.pitch), x + keyWidth / 2, y);
+                    // Only draw if visible
+                    if (y > -radius && y < height + radius) {
+                        ctx.beginPath();
+                        ctx.arc(x + keyWidth / 2, y, radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
+                        ctx.fill();
+
+                        // Draw Note Name text (only if large enough)
+                        if (radius > 8) {
+                            ctx.fillStyle = '#fff';
+                            ctx.font = `bold ${Math.floor(radius)}px Inter, sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(getNoteName(note.pitch), x + keyWidth / 2, y);
+                        }
                     }
                 }
             });
 
             // Draw Piano Overlay (at top)
-            ctx.fillStyle = '#333';
+            const pianoGradient = ctx.createLinearGradient(0, 0, 0, pianoHeight);
+            pianoGradient.addColorStop(0, '#1e293b');
+            pianoGradient.addColorStop(1, '#0f172a');
+            ctx.fillStyle = pianoGradient;
             ctx.fillRect(0, 0, width, pianoHeight);
 
             for (let i = 0; i < PIANO_KEYS; i++) {
@@ -96,8 +102,15 @@ export const VisualizerCanvas: React.FC<VisualizerCanvasProps> = ({
                 const note = START_NOTE + i;
                 const isWhite = isWhiteKey(note);
 
-                ctx.fillStyle = isWhite ? '#fff' : '#000';
+                if (isWhite) {
+                    ctx.fillStyle = '#e2e8f0'; // Off-white
+                } else {
+                    ctx.fillStyle = '#1e293b'; // Dark slate
+                }
+
                 ctx.fillRect(x, 0, keyWidth, pianoHeight);
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1;
                 ctx.strokeRect(x, 0, keyWidth, pianoHeight);
 
                 // Highlight active keys
@@ -108,13 +121,17 @@ export const VisualizerCanvas: React.FC<VisualizerCanvasProps> = ({
                 );
 
                 if (isActive) {
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    const hue = (note * 10) % 360;
+                    ctx.fillStyle = `hsla(${hue}, 90%, 60%, 0.8)`;
                     ctx.fillRect(x, 0, keyWidth, pianoHeight);
+                    // Minimal glow for active keys is okay as it's just a few rects
                 }
             }
+
+            animationId = requestAnimationFrame(render);
         };
 
-        const animationId = requestAnimationFrame(render);
+        let animationId = requestAnimationFrame(render);
         return () => {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationId);

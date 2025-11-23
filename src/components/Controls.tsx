@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaPlay, FaPause, FaVideo, FaStop, FaMobileAlt, FaDesktop } from 'react-icons/fa';
+import { FaPlay, FaPause, FaCircle, FaStop, FaMobileAlt, FaDesktop } from 'react-icons/fa';
 
 interface ControlsProps {
     isPlaying: boolean;
@@ -21,25 +21,7 @@ export const Controls: React.FC<ControlsProps> = ({
     disabled
 }) => {
     return (
-        <div className="controls">
-            <button
-                className="control-btn"
-                onClick={onPlayPause}
-                disabled={disabled}
-                title={isPlaying ? "Pause" : "Play"}
-            >
-                {isPlaying ? <FaPause /> : <FaPlay />}
-            </button>
-
-            <button
-                className={`control-btn ${isRecording ? 'recording' : ''}`}
-                onClick={onRecordToggle}
-                disabled={disabled}
-                title={isRecording ? "Stop Recording" : "Start Recording"}
-            >
-                {isRecording ? <FaStop /> : <FaVideo />}
-            </button>
-
+        <>
             <button
                 className="control-btn"
                 onClick={onOrientationToggle}
@@ -48,6 +30,24 @@ export const Controls: React.FC<ControlsProps> = ({
             >
                 {orientation === 'vertical' ? <FaMobileAlt /> : <FaDesktop />}
             </button>
-        </div>
+
+            <button
+                className="control-btn primary"
+                onClick={onPlayPause}
+                disabled={disabled}
+                title={isPlaying ? "Pause" : "Play"}
+            >
+                {isPlaying ? <FaPause /> : <FaPlay style={{ marginLeft: '4px' }} />}
+            </button>
+
+            <button
+                className={`control-btn ${isRecording ? 'recording' : ''}`}
+                onClick={onRecordToggle}
+                disabled={disabled}
+                title={isRecording ? "Stop Recording" : "Start Recording"}
+            >
+                {isRecording ? <FaStop /> : <FaCircle style={{ fontSize: '0.8em' }} />}
+            </button>
+        </>
     );
 };

@@ -1,8 +1,5 @@
-import React from 'react';
-// Actually, standard input is fine for MVP, but drag and drop is nicer.
-// I'll stick to standard input first to avoid extra deps unless I add it.
-// Let's add it, it's standard. I'll add it to the install command next time or just use standard input.
-// I'll use standard input for now to keep it simple.
+import React, { useState, useCallback } from 'react';
+import { FaCloudUploadAlt, FaMusic } from 'react-icons/fa';
 
 interface AudioUploaderProps {
     onFileSelect: (file: File) => void;
@@ -10,6 +7,8 @@ interface AudioUploaderProps {
 }
 
 export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileSelect, isAnalyzing }) => {
+    const [isDragActive, setIsDragActive] = useState(false);
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
@@ -17,11 +16,56 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileSelect, isAn
         }
     };
 
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isAnalyzing) {
+            setIsDragActive(true);
+        }
+    }, [isAnalyzing]);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragActive(false);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragActive(false);
+
+        if (isAnalyzing) return;
+
+        const file = e.dataTransfer.files?.[0];
+        if (file && (file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+            onFileSelect(file);
+        }
+    }, [isAnalyzing, onFileSelect]);
+
     return (
-        <div className="audio-uploader">
-            <label htmlFor="audio-upload" className="upload-btn">
-                {isAnalyzing ? 'Analyzing...' : 'Upload MP3/WAV'}
-            </label>
+        <div
+            className={`audio-uploader ${isDragActive ? 'drag-active' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => !isAnalyzing && document.getElementById('audio-upload')?.click()}
+        >
+            <div className="upload-icon">
+                {isDragActive ? <FaMusic /> : <FaCloudUploadAlt />}
+            </div>
+
+            <div>
+                <h3 className="upload-title">
+                    {isAnalyzing ? 'Analyzing Audio...' : 'Upload Music File'}
+                </h3>
+                <p className="upload-hint">
+                    {isDragActive
+                        ? 'Drop the beat here!'
+                        : 'Drag & drop an MP3/WAV file, or click to browse'}
+                </p>
+            </div>
+
             <input
                 id="audio-upload"
                 type="file"
@@ -30,7 +74,6 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileSelect, isAn
                 disabled={isAnalyzing}
                 style={{ display: 'none' }}
             />
-            <p className="upload-hint">Select a music file to visualize</p>
         </div>
     );
 };

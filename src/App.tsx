@@ -21,6 +21,7 @@ function App() {
   const handleFileSelect = async (file: File) => {
     setAudioFile(file);
     setIsAnalyzing(true);
+    setIsPlaying(false);
 
     try {
       // Create object URL for playback
@@ -29,11 +30,14 @@ function App() {
       }
 
       // Analyze
+      // Note: Real progress events aren't available from the library yet,
+      // so we use an indeterminate loading state.
       const analyzedNotes = await audioAnalyzer.analyze(file);
       setNotes(analyzedNotes);
     } catch (error) {
       console.error("Analysis failed:", error);
       alert("Failed to analyze audio. Please try another file.");
+      setAudioFile(null); // Reset on error
     } finally {
       setIsAnalyzing(false);
     }
@@ -61,16 +65,6 @@ function App() {
       if (!canvas) return;
 
       const stream = canvas.captureStream(30); // 30 FPS
-      // Add audio track
-      if (audioRef.current) {
-        // We need to capture audio from the element. 
-        // Note: captureStream() on audio element is experimental/limited.
-        // For MVP, we might just record video. 
-        // To record audio + canvas, we need Web Audio API destination.
-        // Let's try to just record canvas for now, user can mux or we add audio later if simple.
-        // Actually, let's try to get audio track if possible.
-        // For now, video only is safer for MVP stability.
-      }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       mediaRecorderRef.current = mediaRecorder;
@@ -105,13 +99,15 @@ function App() {
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('ended', () => setIsPlaying(false));
     };
   }, []);
 
   return (
     <div className={`app-container ${orientation}`}>
       <header>
-        <h1>Piano Rain Visualizer</h1>
+        <h1>Viral Music</h1>
+        {/* Placeholder for future nav items or user profile */}
       </header>
 
       <main>
@@ -120,7 +116,11 @@ function App() {
         ) : (
           <div className="visualizer-container">
             {isAnalyzing ? (
-              <div className="loading">Analyzing Audio... (This may take a moment)</div>
+              <div className="loading-container">
+                <div className="spinner"></div>
+                <h2>Analyzing Audio...</h2>
+                <p>This may take a moment depending on the file size.</p>
+              </div>
             ) : (
               <>
                 <VisualizerCanvas
@@ -129,15 +129,17 @@ function App() {
                   currentTime={currentTime}
                   orientation={orientation}
                 />
-                <Controls
-                  isPlaying={isPlaying}
-                  isRecording={isRecording}
-                  orientation={orientation}
-                  onPlayPause={togglePlayPause}
-                  onRecordToggle={toggleRecording}
-                  onOrientationToggle={() => setOrientation(o => o === 'horizontal' ? 'vertical' : 'horizontal')}
-                  disabled={isAnalyzing}
-                />
+                <div className="controls-dock">
+                  <Controls
+                    isPlaying={isPlaying}
+                    isRecording={isRecording}
+                    orientation={orientation}
+                    onPlayPause={togglePlayPause}
+                    onRecordToggle={toggleRecording}
+                    onOrientationToggle={() => setOrientation(o => o === 'horizontal' ? 'vertical' : 'horizontal')}
+                    disabled={isAnalyzing}
+                  />
+                </div>
               </>
             )}
           </div>
