@@ -11,7 +11,7 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
+  const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('vertical');
   const [isRecording, setIsRecording] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
